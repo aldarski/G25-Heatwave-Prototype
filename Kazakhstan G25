@@ -1,0 +1,50 @@
+library(ggplot2)
+library(ggmap)
+library(dplyr)
+library(tidyr)
+library(geosphere)
+library(viridis)
+
+
+data <- read.csv()
+
+
+reference_g25 <- c(G25 Coordinates)
+
+calculate_euclidean_distance <- function(row_g25, reference_g25) {
+  sqrt(sum((row_g25 - reference_g25)^2))
+}
+
+g25_columns <- grep("^G25", colnames(data), value = TRUE)
+data$distance_to_reference <- apply(data[, g25_columns], 1, 
+                                    function(x) calculate_euclidean_distance(x, reference_g25))
+
+world_map <- map_data("world")
+
+kazakhstan_cities <- data.frame(
+  name = c("Almaty", "Astana", "Shymkent", "Karaganda", "Aktobe", "Pavlodar", "Ust-Kamenogorsk"),
+  lat = c(43.222, 51.1694, 42.3417, 49.8003, 50.2833, 52.2850, 49.974),
+  long = c(76.8512, 71.4491, 69.5901, 73.0913, 57.1667, 76.9500, 82.6167)
+)
+
+heatmap_data <- data.frame(
+  Longitude = data$Longitude,
+  Latitude = data$Latitude,
+  Distance = data$distance_to_reference
+)
+
+ggplot() +
+  geom_map(data = world_map, map = world_map, aes(x = long, y = lat, map_id = region), 
+           fill = "lightblue", color = "white", size = 0.2) +
+  stat_density_2d(data = heatmap_data, aes(x = Longitude, y = Latitude, fill = ..level..), 
+                  geom = "polygon", color = "white", size = 0.5, alpha = 0.4) +  
+  scale_fill_viridis(option = "plasma") +
+  theme_minimal() +
+  ggtitle("Heatwave Prototype Using G25") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_fixed(ratio = 1.1) +
+  xlim(40, 95) +  
+  ylim(35, 55) +   
+  geom_text(data = kazakhstan_cities, aes(x = long, y = lat, label = name), 
+            size = 3, color = "black", fontface = "bold", check_overlap = TRUE) +  
+  theme(legend.position = "none")  
